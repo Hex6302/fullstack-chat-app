@@ -20,14 +20,13 @@ export const generateToken = (userId, res) => {
     }
   );
 
-  // Enhanced cookie settings for better security
+  // Cookie settings for cross-origin deployment
   res.cookie("jwt", token, {
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    httpOnly: true, // Prevent XSS attacks
-    secure: process.env.NODE_ENV !== "development", // HTTPS only in production
-    sameSite: process.env.NODE_ENV === "development" ? "lax" : "strict", // CSRF protection
-    path: "/", // Available on all routes
-    domain: process.env.NODE_ENV === "production" ? process.env.COOKIE_DOMAIN : undefined
+    httpOnly: true,
+    secure: true, // Required for sameSite: none
+    sameSite: "none", // Required for cross-origin cookies
+    path: "/"
   });
 
   return token;
