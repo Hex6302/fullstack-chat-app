@@ -108,14 +108,9 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// Serve static files in production
-if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "../frontend/dist")));
-
-  app.get("*", (req, res) => {
-    res.sendFile(path.join(__dirname, "../frontend", "dist", "index.html"));
-  });
-}
+// Only serve static files if frontend/dist exists (for combined deployments)
+// Skip this when backend is deployed separately (e.g., on Render)
+// Frontend is deployed on Vercel separately
 
 // Global error handler
 app.use((err, req, res, next) => {
