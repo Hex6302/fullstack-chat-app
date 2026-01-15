@@ -34,7 +34,42 @@ const __dirname = path.resolve();
 // Trust proxy for accurate IP addresses (important for rate limiting)
 app.set('trust proxy', 1);
 
-// Security middleware (order matters!)
+// CORS must be FIRST before any other middleware
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    // In production, use strict origin checking
+    const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()) || [];
+    
+    // Also allow localhost in development
+    const isDevelopment = !process.env.NODE_ENV || process.env.NODE_ENV === "development";
+    if (isDevelopment) {
+      const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+      if (isLocalhost) {
+        return callback(null, true);
+      }
+    }
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log(`❌ CORS blocked: ${origin}. Allowed: ${allowedOrigins.join(', ')}`);
+      callback(null, false);
+    }
+  },
+  credentials: true,
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset']
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+
+// Security middleware (after CORS)
 app.use(securityHeaders);
 app.use(compressionMiddleware);
 app.use(requestSizeLimiter);
@@ -45,75 +80,13 @@ app.use(generalLimiter);
 app.use(speedLimiter);
 
 // Body parsing with limits
-app.use(express.json({ 
-  limit: "10mb",
-  verify: (req, res, buf) => {
-    // Additional security check for JSON payload
-    if (buf.length > 10 * 1024 * 1024) {
-      throw new Error('Request entity too large');
-    }
-  }
-}));
-app.use(express.urlencoded({ 
-  limit: "10mb", 
-  extended: true,
-  parameterLimit: 1000 // Limit number of parameters
-}));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
 // Data sanitization (must be after body parsing)
 app.use(sanitizeData);
 
 app.use(cookieParser());
-
-// Enhanced CORS configuration
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, Postman, etc.)
-    if (!origin) return callback(null, true);
-    
-    // Check if we're in development mode (NODE_ENV not set or set to development)
-    const isDevelopment = !process.env.NODE_ENV || process.env.NODE_ENV === "development";
-    
-    if (isDevelopment) {
-      // Allow localhost on any port and common development URLs
-      const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?$/.test(origin);
-      const isDevServer = /^https?:\/\/(localhost|127\.0\.0\.1):(3000|3001|5173|8080|8081)$/.test(origin);
-      
-      if (isLocalhost || isDevServer) {
-        console.log(`✅ CORS allowing development origin: ${origin}`);
-        return callback(null, true);
-      }
-    }
-    
-    // In production, use strict origin checking
-    const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
-    
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.log(`❌ CORS blocked origin: ${origin} (NODE_ENV: ${process.env.NODE_ENV})`);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  optionsSuccessStatus: 200,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: [
-    'Content-Type', 
-    'Authorization', 
-    'X-Requested-With',
-    'Accept',
-    'Origin',
-    'Access-Control-Request-Method',
-    'Access-Control-Request-Headers'
-  ],
-  exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset']
-};
-
-app.use(cors(corsOptions));
-
-// Handle preflight requests explicitly
-app.options('*', cors(corsOptions));
 
 // Apply specific rate limits to routes
 app.use("/api/auth", authLimiter);
