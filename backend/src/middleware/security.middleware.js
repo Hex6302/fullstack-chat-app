@@ -92,30 +92,22 @@ export const securityLogger = (req, res, next) => {
 };
 
 export const validateSignup = [
-  body("username")
+  body("fullName")
     .trim()
-    .isLength({ min: 3, max: 30 })
-    .withMessage("Username must be between 3 and 30 characters")
-    .matches(/^[a-zA-Z0-9_]+$/)
-    .withMessage("Username can only contain letters, numbers, and underscores"),
+    .isLength({ min: 2, max: 50 })
+    .withMessage("Full name must be between 2 and 50 characters"),
   body("email")
     .isEmail()
     .normalizeEmail()
     .withMessage("Please provide a valid email address"),
   body("password")
-    .isLength({ min: 8 })
-    .withMessage("Password must be at least 8 characters long")
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
-    .withMessage("Password must contain at least one uppercase letter, one lowercase letter, and one number"),
-  body("tag")
+    .isLength({ min: 6 })
+    .withMessage("Password must be at least 6 characters long"),
+  body("userTag")
     .optional()
     .trim()
     .isLength({ min: 1, max: 20 })
     .withMessage("Tag must be between 1 and 20 characters"),
-  body("profilePicture")
-    .optional()
-    .isURL()
-    .withMessage("Profile picture must be a valid URL"),
 ];
 
 export const validateLogin = [
