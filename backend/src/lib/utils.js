@@ -24,10 +24,13 @@ export const generateToken = (userId, res) => {
   res.cookie("jwt", token, {
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     httpOnly: true,
-    secure: true, // Required for sameSite: none
-    sameSite: "none", // Required for cross-origin cookies
+    secure: true,
+    sameSite: "none",
     path: "/"
   });
+
+  // Also send token in header for mobile (where cookies may not work)
+  res.setHeader("x-auth-token", token);
 
   return token;
 };
