@@ -1,5 +1,9 @@
 {
-  "appId": "com.chatapp.mobile",
-  "appName": "Chat App",
-  "webDir": "frontend"
+  "appId": "com.hexchatter.app",
+  "appName": "HexChatter",
+  "webDir": "frontend/dist",
+  "server": {
+    "url": "https://hexvvnchatter.vercel.app",
+    "cleartext": true
+  }
 }

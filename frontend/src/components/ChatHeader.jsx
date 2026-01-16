@@ -1,9 +1,9 @@
 import { X } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
-import { useEffect, useState } from "react";
+import { useEffect, useState, memo, useCallback } from "react";
 
-const ChatHeader = () => {
+const ChatHeader = memo(() => {
   const { selectedUser, setSelectedUser } = useChatStore();
   const { onlineUsers, isRecentlyOffline, getLastSeenTime } = useAuthStore();
   const [forceUpdate, setForceUpdate] = useState(0);
@@ -20,6 +20,10 @@ const ChatHeader = () => {
   const isOnline = onlineUsers.includes(selectedUser._id);
   const lastSeen = getLastSeenTime(selectedUser._id);
   const isRecentlyOfflineUser = !isOnline && isRecentlyOffline(selectedUser._id);
+
+  const handleClose = useCallback(() => {
+    setSelectedUser(null);
+  }, [setSelectedUser]);
 
   return (
     <div className="p-2 sm:p-2.5 border-b border-base-300">
@@ -58,11 +62,14 @@ const ChatHeader = () => {
         </div>
 
         {/* Close button */}
-        <button onClick={() => setSelectedUser(null)} className="btn btn-ghost btn-sm btn-circle">
+        <button onClick={handleClose} className="btn btn-ghost btn-sm btn-circle">
           <X className="size-4 sm:size-5" />
         </button>
       </div>
     </div>
   );
-};
+});
+
+ChatHeader.displayName = 'ChatHeader';
+
 export default ChatHeader;

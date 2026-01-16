@@ -51,11 +51,39 @@ export const useChatStore = create((set, get) => ({
 
   sendMessage: async (messageData) => {
     const { selectedUser, messages } = get();
+    const { authUser } = useAuthStore.getState();
+    
+    // Create optimistic message
+    const optimisticMessage = {
+      _id: `temp_${Date.now()}_${Math.random()}`,
+      text: messageData.text,
+      image: messageData.image,
+      senderId: authUser._id,
+      receiverId: selectedUser._id,
+      status: "sending",
+      createdAt: new Date().toISOString(),
+      isOptimistic: true,
+      ...messageData
+    };
+    
+    // Add optimistic message immediately
+    set({ messages: [...messages, optimisticMessage] });
+    
     try {
       const res = await axiosInstance.post(`/messages/send/${selectedUser._id}`, messageData);
-      set({ messages: [...messages, res.data] });
+      
+      // Replace optimistic message with real one
+      set(state => ({
+        messages: state.messages.map(msg => 
+          msg._id === optimisticMessage._id ? res.data : msg
+        )
+      }));
     } catch (error) {
-      toast.error(error.response.data.message);
+      // Remove failed optimistic message
+      set(state => ({
+        messages: state.messages.filter(msg => msg._id !== optimisticMessage._id)
+      }));
+      toast.error(error.response?.data?.message || "Failed to send message");
     }
   },
 

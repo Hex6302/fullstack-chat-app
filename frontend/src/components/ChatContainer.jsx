@@ -1,8 +1,9 @@
 import { useChatStore } from "../store/useChatStore";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { ArrowLeft, Check, CheckCheck, MoreVertical, Settings, Trash2, MessageSquareX, X, Shield, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getOnlineStatusDot } from "../lib/onlineStatus.jsx";
+import { Virtuoso } from "react-virtuoso";
 
 import ChatHeader from "./ChatHeader";
 import MessageInput from "./MessageInput";
@@ -51,11 +52,20 @@ const ChatContainer = () => {
     return () => unsubscribeFromMessages();
   }, [selectedUser._id, getMessages, subscribeToMessages, unsubscribeFromMessages]);
 
-  useEffect(() => {
-    if (messageEndRef.current && messages) {
-      messageEndRef.current.scrollIntoView({ behavior: "smooth" });
+  // Memoize callbacks to prevent re-renders
+  const handleToggleSelection = useCallback((messageId) => {
+    toggleMessageSelection(messageId);
+  }, []);
+
+  const handleForward = useCallback((msg) => {
+    if (!msg.preventForwarding) {
+      setMessageToForward(msg);
+      setShowForwardModal(true);
     }
-  }, [messages]);
+  }, []);
+
+  // Memoize messages list for virtualization
+  const messagesList = useMemo(() => messages, [messages]);
 
   const handleClearChat = async () => {
     if (window.confirm("Are you sure you want to clear this chat?")) {
@@ -297,24 +307,30 @@ const ChatContainer = () => {
 
       <div 
         ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-3 bg-base-100 scrollbar-thin scrollbar-thumb-base-300 scrollbar-track-base-100"
+        className="flex-1 overflow-hidden bg-base-100"
       >
-        {messages.map((message) => (
-          <Message 
-            key={message._id} 
-            message={message} 
-            isSelecting={isSelecting}
-            isSelected={selectedMessages.includes(message._id)}
-            onSelect={() => toggleMessageSelection(message._id)}
-            onForward={(msg) => {
-              if (!msg.preventForwarding) {
-                setMessageToForward(msg);
-                setShowForwardModal(true);
-              }
-            }}
-          />
-        ))}
-        <div ref={messageEndRef} />
+        <Virtuoso
+          data={messagesList}
+          totalCount={messagesList.length}
+          itemContent={(index) => {
+            const message = messagesList[index];
+            return (
+              <div className="px-4 py-1.5">
+                <Message 
+                  key={message._id} 
+                  message={message} 
+                  isSelecting={isSelecting}
+                  isSelected={selectedMessages.includes(message._id)}
+                  onSelect={() => handleToggleSelection(message._id)}
+                  onForward={handleForward}
+                />
+              </div>
+            );
+          }}
+          followOutput="smooth"
+          initialTopMostItemIndex={messagesList.length > 0 ? messagesList.length - 1 : 0}
+          style={{ height: '100%' }}
+        />
       </div>
 
       <div className="sticky bottom-0 z-10 bg-base-100 p-3 border-t border-base-300">

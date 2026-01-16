@@ -2,20 +2,48 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom animations */
+/* Android WebView optimizations */
+:root {
+  /* Fix 100vh on mobile */
+  --vh: 1vh;
+}
+
+html, body {
+  /* Prevent text size adjustment on iOS */
+  -webkit-text-size-adjust: 100%;
+  /* Enable momentum scrolling on iOS */
+  -webkit-overflow-scrolling: touch;
+  /* Prevent pull-to-refresh on Android */
+  overscroll-behavior-y: contain;
+  /* Optimize font rendering */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Prevent tap highlight */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Fix viewport height for mobile browsers */
+#root {
+  height: 100vh;
+  height: calc(var(--vh, 1vh) * 100);
+  overflow: hidden;
+}
+
+/* GPU-accelerated animations */
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translate3d(0, -10px, 0);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0);
   }
 }
 
 .animate-fadeIn {
   animation: fadeIn 0.3s ease-out;
+  will-change: transform, opacity;
 }
 
 /* Responsive chat options modal */
@@ -26,21 +54,23 @@
   }
 }
 
-/* Self-destruct message animation */
+/* GPU-accelerated self-destruct animation */
 @keyframes fadeOutShrink {
   from {
     opacity: 1;
-    transform: scale(1);
+    transform: scale3d(1, 1, 1);
   }
   to {
     opacity: 0;
-    transform: scale(0.85);
+    transform: scale3d(0.85, 0.85, 1);
   }
 }
 
 .message-deleting {
   animation: fadeOutShrink 0.5s ease-out forwards;
   pointer-events: none;
+  will-change: transform, opacity;
+  transform: translateZ(0); /* Force GPU acceleration */
 }
 
 /* Responsive self-destruct animation */
@@ -129,6 +159,17 @@
   .protected-message-wrapper {
     touch-action: none !important;
   }
+}
+
+/* Optimized scrolling for Android WebView */
+.overflow-y-auto {
+  /* Enable momentum scrolling */
+  -webkit-overflow-scrolling: touch;
+  /* Optimize scrolling performance */
+  transform: translateZ(0);
+  will-change: scroll-position;
+  /* Prevent overscroll bounce */
+  overscroll-behavior-y: contain;
 }
 
 /* Power saving mode */

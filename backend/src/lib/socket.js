@@ -42,8 +42,20 @@ const io = new Server(server, {
   },
   allowEIO3: true,
   transports: ['websocket', 'polling'],
-  pingTimeout: 60000,
-  pingInterval: 25000
+  // Optimized for low latency
+  pingTimeout: 20000, // Reduced from 60s to 20s for faster reconnection
+  pingInterval: 10000, // Reduced from 25s to 10s for better connection health
+  upgradeTimeout: 10000, // Faster upgrade to websocket
+  maxHttpBufferSize: 1e6, // 1MB max message size
+  // Enable compression for better performance
+  perMessageDeflate: {
+    threshold: 1024, // Only compress messages > 1KB
+    zlibDeflateOptions: {
+      chunkSize: 1024,
+      memLevel: 7,
+      level: 3
+    }
+  }
 });
 
 // Socket authentication middleware

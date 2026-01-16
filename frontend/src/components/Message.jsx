@@ -1,11 +1,11 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, memo, useCallback } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
 import { formatMessageTime } from "../lib/utils";
 import { Check, CheckCheck, Share2, MoreVertical } from "lucide-react";
 import ProtectedMessage from "./ProtectedMessage";
 
-const Message = ({ message, isSelecting, isSelected, onSelect, onForward }) => {
+const Message = memo(({ message, isSelecting, isSelected, onSelect, onForward }) => {
   const { authUser } = useAuthStore();
   const { isMessageDeleting } = useChatStore();
   const isMyMessage = message.senderId === authUser._id;
@@ -70,6 +70,18 @@ const Message = ({ message, isSelecting, isSelected, onSelect, onForward }) => {
     };
   }, []);
 
+  const handleClick = useCallback(() => {
+    if (isSelecting && onSelect) {
+      onSelect();
+    }
+  }, [isSelecting, onSelect]);
+
+  const handleForwardClick = useCallback(() => {
+    if (onForward && !message.preventForwarding) {
+      onForward(message);
+    }
+  }, [onForward, message]);
+
   return (
     <div 
       ref={messageRef}
@@ -78,7 +90,7 @@ const Message = ({ message, isSelecting, isSelected, onSelect, onForward }) => {
       } ${isDeleting ? "message-deleting" : ""} ${
         message.preventForwarding ? "no-context-menu" : ""
       }`}
-      onClick={isSelecting ? onSelect : undefined}
+      onClick={handleClick}
     >
       <div className={`flex gap-2 items-start w-full max-w-[85%] ${
         isSelecting ? "hover:bg-base-200 p-2 rounded-lg" : ""
@@ -162,10 +174,7 @@ const Message = ({ message, isSelecting, isSelected, onSelect, onForward }) => {
                 {!isSelecting && !message.preventForwarding && (
                   <>
                     <button
-                      onClick={() => {
-                        if (onForward) onForward(message);
-                        setShowForwardMenu(false);
-                      }}
+                      onClick={handleForwardClick}
                       className="btn btn-ghost btn-xs opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex"
                       title="Forward message"
                     >
@@ -173,9 +182,7 @@ const Message = ({ message, isSelecting, isSelected, onSelect, onForward }) => {
                     </button>
                     {/* Mobile: show always for touch */}
                     <button
-                      onClick={() => {
-                        if (onForward) onForward(message);
-                      }}
+                      onClick={handleForwardClick}
                       className="btn btn-ghost btn-xs flex sm:hidden"
                       title="Tap and hold or click to forward"
                     >
@@ -197,6 +204,17 @@ const Message = ({ message, isSelecting, isSelected, onSelect, onForward }) => {
       </div>
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison for memo
+  return (
+    prevProps.message._id === nextProps.message._id &&
+    prevProps.message.text === nextProps.message.text &&
+    prevProps.message.status === nextProps.message.status &&
+    prevProps.isSelecting === nextProps.isSelecting &&
+    prevProps.isSelected === nextProps.isSelected
+  );
+});
+
+Message.displayName = 'Message';
 
 export default Message; 

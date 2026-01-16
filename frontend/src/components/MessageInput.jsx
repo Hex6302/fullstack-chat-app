@@ -1,11 +1,11 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, memo, useCallback } from "react";
 import { useChatStore } from "../store/useChatStore";
 import { Image, Send, X, Smile } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import { saveDraft, getDraft, clearDraft } from "../lib/draftManager";
 import offlineManager from "../lib/offlineManager";
 
-const MessageInput = () => {
+const MessageInput = memo(() => {
   const { selectedUser, sendMessage, selfDestructMode, protectMode: _ } = useChatStore();
   const { authUser, setTypingStatus } = useAuthStore();
   const [text, setText] = useState("");
@@ -56,7 +56,7 @@ const MessageInput = () => {
     };
   }, []);
 
-  const handleTyping = () => {
+  const handleTyping = useCallback(() => {
     if (!selectedUser) return;
 
     if (!isTyping) {
@@ -72,9 +72,9 @@ const MessageInput = () => {
       setIsTyping(false);
       setTypingStatus(selectedUser._id, false);
     }, 2000);
-  };
+  }, [selectedUser, isTyping, setTypingStatus]);
 
-  const handleSendMessage = async (e) => {
+  const handleSendMessage = useCallback(async (e) => {
     e.preventDefault();
     if (!text.trim() && !image) return;
 
@@ -131,9 +131,9 @@ const MessageInput = () => {
     } catch (error) {
       console.error("Error sending message:", error);
     }
-  };
+  }, [text, image, selectedUser, selfDestructMode, sendMessage, setTypingStatus]);
 
-  const handleImageChange = (e) => {
+  const handleImageChange = useCallback((e) => {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
@@ -142,26 +142,26 @@ const MessageInput = () => {
       };
       reader.readAsDataURL(file);
     }
-  };
+  }, []);
 
-  const removeImage = () => {
+  const removeImage = useCallback(() => {
     setImage(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-  };
+  }, []);
 
-  const addEmoji = (emoji) => {
+  const addEmoji = useCallback((emoji) => {
     setText(prev => prev + emoji);
     setShowEmojiPicker(false);
-  };
+  }, []);
 
-  const handleKeyPress = (e) => {
+  const handleKeyPress = useCallback((e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage(e);
     }
-  };
+  }, [handleSendMessage]);
 
   // Common emojis
   const commonEmojis = [
@@ -295,6 +295,8 @@ const MessageInput = () => {
       )}
     </div>
   );
-};
+});
+
+MessageInput.displayName = 'MessageInput';
 
 export default MessageInput;
